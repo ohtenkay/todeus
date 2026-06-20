@@ -27,3 +27,14 @@ export const create = mutation({
     return null;
   },
 });
+
+export const remove = mutation({
+  args: {
+    id: v.id("todos"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
+    return null;
+  },
+});

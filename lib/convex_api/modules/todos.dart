@@ -54,6 +54,11 @@ class TodosApi {
       typedStream$,
     );
   }
+
+  Future<Null> remove({required TodosId id}) async {
+    await _client.mutate('todos:remove', _encodeRemoveArgs((id: id)));
+    return null;
+  }
 }
 
 typedef ListResultItem = ({
@@ -101,4 +106,19 @@ ListResultItem _decodeListResultItem(dynamic raw) {
     createdAt: expectDouble(map['createdAt'], label: 'ListResultItemCreatedAt'),
     text: expectString(map['text'], label: 'ListResultItemText'),
   );
+}
+
+typedef RemoveArgs = ({TodosId id});
+
+Map<String, dynamic> _encodeRemoveArgs(RemoveArgs value$) {
+  final (id: id) = value$;
+  return <String, dynamic>{'id': id.value};
+}
+
+RemoveArgs _decodeRemoveArgs(dynamic raw) {
+  final map = expectMap(raw, label: 'RemoveArgs');
+  if (!map.containsKey('id')) {
+    throw FormatException('Missing required field "id" for RemoveArgs');
+  }
+  return (id: TodosId(expectString(map['id'], label: 'RemoveArgsId')));
 }

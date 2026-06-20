@@ -24,4 +24,33 @@ void main() {
     expect(find.text('Injected todo'), findsOneWidget);
     expect(find.text('todo-id'), findsOneWidget);
   });
+
+  testWidgets('deletes a todo through the injected callback', (tester) async {
+    final todos = Stream<TypedQueryResult<List<ListResultItem>>>.value(
+      const TypedQuerySuccess([
+        (
+          creationTime: 1.0,
+          id: TodosId('todo-id'),
+          createdAt: 1.0,
+          text: 'Injected todo',
+        ),
+      ]),
+    );
+    TodosId? removedId;
+
+    await tester.pumpWidget(
+      MyApp(
+        todosStream: todos,
+        removeTodo: (id) async {
+          removedId = id;
+        },
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Delete todo'));
+    await tester.pump();
+
+    expect(removedId, const TodosId('todo-id'));
+  });
 }
