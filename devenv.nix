@@ -4,6 +4,7 @@
   packages = [
     pkgs.docker-client
     pkgs.docker-compose
+    pkgs.inotify-tools
   ];
 
   android = {
@@ -44,11 +45,22 @@
 
   processes.dart-codegen = {
     exec = ''
+      set -euo pipefail
       export PATH="$DEVENV_ROOT/node_modules/.bin:$PATH"
-      exec dart run dartvex_codegen generate \
-        --project "$DEVENV_ROOT" \
-        --output "$DEVENV_ROOT/lib/convex_api" \
-        --watch
+
+      generate() {
+        dart run dartvex_codegen generate \
+          --project "$DEVENV_ROOT" \
+          --output "$DEVENV_ROOT/lib/convex_api"
+      }
+
+      generate
+      echo "Watching convex/ for changes..."
+
+      while inotifywait -r -e close_write,create,delete,move "$DEVENV_ROOT/convex"; do
+        sleep 1
+        generate || true
+      done
     '';
     after = [ "devenv:processes:convex-dev@started" ];
   };
