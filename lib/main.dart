@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:todeus/convex/client.dart';
-import 'package:todeus/convex/functions/todos/create.dart' as todos_create;
-import 'package:todeus/convex/functions/todos/list.dart' as todos_list;
+import 'package:todeus/convex_api/api.dart';
+import 'package:todeus/convex_api/modules/todos.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,7 +12,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key, this.todosStream, this.createTodo});
 
-  final Stream<todos_list.ListResponse>? todosStream;
+  final Stream<TypedQueryResult<List<ListResultItem>>>? todosStream;
   final Future<void> Function()? createTodo;
 
   @override
@@ -40,7 +40,7 @@ class MyHomePage extends StatefulWidget {
   });
 
   final String title;
-  final Stream<todos_list.ListResponse>? todosStream;
+  final Stream<TypedQueryResult<List<ListResultItem>>>? todosStream;
   final Future<void> Function()? createTodo;
 
   @override
@@ -48,13 +48,14 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late final Stream<todos_list.ListResponse> _todosStream;
+  late final Stream<TypedQueryResult<List<ListResultItem>>> _todosStream;
   bool _creating = false;
 
   @override
   void initState() {
     super.initState();
-    _todosStream = widget.todosStream ?? todos_list.listStream();
+    _todosStream =
+        widget.todosStream ?? ConvexClient.api.todos.listSubscribe().stream;
   }
 
   Future<void> _createTodo() async {
@@ -63,7 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       final createTodo = widget.createTodo;
       if (createTodo == null) {
-        await todos_create.create();
+        await ConvexClient.api.todos.create();
       } else {
         await createTodo();
       }
@@ -81,35 +82,22 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: StreamBuilder<todos_list.ListResponse>(
+      body: StreamBuilder<TypedQueryResult<List<ListResultItem>>>(
         stream: _todosStream,
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Convex error: ${snapshot.error}'));
-          }
-
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final todos = snapshot.data!.body;
-          if (todos.isEmpty) {
-            return const Center(child: Text('No todos yet. Tap + to add one.'));
+          final result = snapshot.data!;
+          switch (result) {
+            case TypedQueryLoading<List<ListResultItem>>():
+              return const Center(child: CircularProgressIndicator());
+            case TypedQueryError<List<ListResultItem>>(:final message):
+              return Center(child: Text('Convex error: $message'));
+            case TypedQuerySuccess<List<ListResultItem>>(:final value):
+              return _TodosList(todos: value);
           }
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: todos.length,
-            separatorBuilder: (_, _) => const Divider(),
-            itemBuilder: (context, index) {
-              final todo = todos[index];
-              return ListTile(
-                leading: const Icon(Icons.check_box_outline_blank),
-                title: Text(todo.text),
-                subtitle: Text(todo.$_id.toString()),
-              );
-            },
-          );
         },
       ),
       floatingActionButton: FloatingActionButton(
@@ -122,6 +110,33 @@ class _MyHomePageState extends State<MyHomePage> {
               )
             : const Icon(Icons.add),
       ),
+    );
+  }
+}
+
+class _TodosList extends StatelessWidget {
+  const _TodosList({required this.todos});
+
+  final List<ListResultItem> todos;
+
+  @override
+  Widget build(BuildContext context) {
+    if (todos.isEmpty) {
+      return const Center(child: Text('No todos yet. Tap + to add one.'));
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: todos.length,
+      separatorBuilder: (_, _) => const Divider(),
+      itemBuilder: (context, index) {
+        final todo = todos[index];
+        return ListTile(
+          leading: const Icon(Icons.check_box_outline_blank),
+          title: Text(todo.text),
+          subtitle: Text(todo.id.toString()),
+        );
+      },
     );
   }
 }
