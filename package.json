@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "convex:dev": "convex dev",
+    "convex:function-spec": "convex function-spec"
+  },
+  "dependencies": {
+    "convex": "latest"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}

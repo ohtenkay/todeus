@@ -9,6 +9,14 @@
   android = {
     enable = true;
     flutter.enable = true;
+
+    platforms.version = [
+      "32"
+      "33"
+      "34"
+      "35"
+      "36"
+    ];
   };
 
   languages.dart.enable = true;
@@ -36,6 +44,10 @@
   scripts.start-emulator.exec = ''
     export ANDROID_AVD_HOME="$PWD/.android/avd"
     exec emulator -avd pixel-6-pro-api-36 -gpu host
+  '';
+
+  scripts.flutter-run.exec = ''
+    exec flutter run --dart-define=CONVEX_URL=http://10.0.2.2:3210 "$@"
   '';
 
   # Work around https://github.com/cachix/devenv/issues/2782: devenv's Android
