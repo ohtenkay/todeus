@@ -1,23 +1,20 @@
-// ignore_for_file: type=lint, unused_import, unnecessary_question_mark, dead_code
-// ignore_for_file: unused_element, unnecessary_cast, override_on_non_overriding_member
-// ignore_for_file: strict_raw_type, inference_failure_on_untyped_parameter, invalid_use_of_internal_member
-import 'package:convex_dart/src/convex_dart_for_generated_code.dart'
-    as internal;
-import 'package:http/http.dart' as $http;
-import 'dart:convert' as $convert;
+import 'package:dartvex/dartvex.dart' as dartvex;
 
 class ConvexClient {
   static const String _deploymentUrl = String.fromEnvironment(
     'CONVEX_URL',
-    defaultValue: 'http://127.0.0.1:3210',
+    defaultValue: 'http://10.0.2.2:3210',
   );
+  static late final dartvex.ConvexClient _instance;
+
+  static dartvex.ConvexClient get instance => _instance;
 
   static Future<void> init() async {
-    await internal.InternalConvexClient.init(deploymentUrl: _deploymentUrl);
+    _instance = dartvex.ConvexClient(_deploymentUrl);
   }
 
   Future<void> setAuth({required String? token}) async {
-    await internal.InternalConvexClient.instance.setAuth(token: token);
+    await _instance.setAuth(token);
   }
 
   static const String httpUrl = _deploymentUrl;

@@ -1,54 +1,46 @@
-// ignore_for_file: type=lint, unused_import, unnecessary_question_mark, dead_code, dead_null_aware_expression
-// ignore_for_file: unused_element, unnecessary_cast, override_on_non_overriding_member
-// ignore_for_file: strict_raw_type, inference_failure_on_untyped_parameter, invalid_use_of_internal_member
-import "package:convex_dart/src/convex_dart_for_generated_code.dart";
-import "dart:typed_data";
-import "../../schema.dart";
-import "../../literals.dart";
+// ignore_for_file: non_constant_identifier_names
+
+import 'package:dartvex/dartvex.dart' as dartvex;
+
+import '../../client.dart';
+import '../../schema.dart';
 
 Future<ListResponse> list() async {
-  final serializedArgs = _serialize(null);
-  final response = await InternalConvexClient.instance.query(
-    name: 'todos:list',
-    args: serializedArgs,
-  );
-  final deserializedResponse = _deserialize(response);
-  return deserializedResponse;
+  final response = await ConvexClient.instance.query('todos:list');
+  return _deserialize(response);
 }
 
 Stream<ListResponse> listStream() {
-  final serializedArgs = _serialize(null);
-  return InternalConvexClient.instance.stream(
-    name: 'todos:list',
-    args: serializedArgs,
-    decodeResult: _deserialize,
-  );
+  final subscription = ConvexClient.instance.subscribe('todos:list');
+  return subscription.stream.asyncExpand((result) {
+    switch (result) {
+      case dartvex.QuerySuccess(:final value):
+        return Stream.value(_deserialize(value));
+      case dartvex.QueryError(:final message):
+        return Stream.error(dartvex.ConvexException(message));
+      case dartvex.QueryLoading():
+        return const Stream.empty();
+    }
+  });
 }
 
-@pragma("vm:prefer-inline")
-BTreeMapStringValue _serialize(void args) {
-  return hashmapToBtreemap(hashmap: {});
-}
+ListResponse _deserialize(dynamic value) {
+  final todos = (value as List<dynamic>).map((todo) {
+    final map = todo as Map<String, dynamic>;
+    return (
+      $_creationTime: (map['_creationTime'] as num).toDouble(),
+      $_id: TodosId(map['_id'] as String),
+      createdAt: (map['createdAt'] as num).toDouble(),
+      text: map['text'] as String,
+    );
+  }).toList(growable: false);
 
-@pragma("vm:prefer-inline")
-ListResponse _deserialize(Value map) {
   return (
-    body: (decodeValue(map) as IList<dynamic>)
-        .map(
-          (on963601) => (on963601 as IMap<String, dynamic>).then(
-            (on896509) => (
-              $_creationTime: (on896509['_creationTime'] as double),
-              $_id: TodosId(on896509['_id'] as String),
-              createdAt: (on896509['createdAt'] as double),
-              text: (on896509['text'] as String),
-            ),
-          ),
-        )
-        .toIList(),
+    body: todos,
   );
 }
 
 typedef ListResponse = ({
-  IList<({double $_creationTime, TodosId $_id, double createdAt, String text})>
+  List<({double $_creationTime, TodosId $_id, double createdAt, String text})>
   body,
 });
