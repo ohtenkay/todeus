@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MyHomePage extends StatefulWidget {
+class MyHomePage extends StatelessWidget {
   const MyHomePage({
     super.key,
     required this.title,
@@ -47,53 +47,21 @@ class MyHomePage extends StatefulWidget {
   final Future<void> Function()? createTodo;
   final Future<void> Function(TodosId id)? removeTodo;
 
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  late final Stream<TypedQueryResult<List<ListResultItem>>> _todosStream;
-  bool _creating = false;
-  final Set<TodosId> _removing = <TodosId>{};
-
-  @override
-  void initState() {
-    super.initState();
-    _todosStream =
-        widget.todosStream ?? ConvexClient.api.todos.listSubscribe().stream;
-  }
-
   Future<void> _createTodo() async {
-    if (_creating) return;
-    setState(() => _creating = true);
-    try {
-      final createTodo = widget.createTodo;
-      if (createTodo == null) {
-        await ConvexClient.api.todos.create();
-      } else {
-        await createTodo();
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _creating = false);
-      }
+    final createTodo = this.createTodo;
+    if (createTodo == null) {
+      await ConvexClient.api.todos.create();
+    } else {
+      await createTodo();
     }
   }
 
   Future<void> _removeTodo(TodosId id) async {
-    if (_removing.contains(id)) return;
-    setState(() => _removing.add(id));
-    try {
-      final removeTodo = widget.removeTodo;
-      if (removeTodo == null) {
-        await ConvexClient.api.todos.remove(id: id);
-      } else {
-        await removeTodo(id);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _removing.remove(id));
-      }
+    final removeTodo = this.removeTodo;
+    if (removeTodo == null) {
+      await ConvexClient.api.todos.remove(id: id);
+    } else {
+      await removeTodo(id);
     }
   }
 
@@ -102,10 +70,10 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        title: Text(title),
       ),
       body: StreamBuilder<TypedQueryResult<List<ListResultItem>>>(
-        stream: _todosStream,
+        stream: todosStream ?? ConvexClient.api.todos.listSubscribe().stream,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -118,37 +86,23 @@ class _MyHomePageState extends State<MyHomePage> {
             case TypedQueryError<List<ListResultItem>>(:final message):
               return Center(child: Text('Convex error: $message'));
             case TypedQuerySuccess<List<ListResultItem>>(:final value):
-              return _TodosList(
-                todos: value,
-                removing: _removing,
-                onRemove: _removeTodo,
-              );
+              return _TodosList(todos: value, onRemove: _removeTodo);
           }
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _creating ? null : _createTodo,
+        onPressed: _createTodo,
         tooltip: 'Create todo',
-        child: _creating
-            ? const SizedBox.square(
-                dimension: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }
 }
 
 class _TodosList extends StatelessWidget {
-  const _TodosList({
-    required this.todos,
-    required this.removing,
-    required this.onRemove,
-  });
+  const _TodosList({required this.todos, required this.onRemove});
 
   final List<ListResultItem> todos;
-  final Set<TodosId> removing;
   final Future<void> Function(TodosId id) onRemove;
 
   @override
@@ -163,20 +117,14 @@ class _TodosList extends StatelessWidget {
       separatorBuilder: (_, _) => const Divider(),
       itemBuilder: (context, index) {
         final todo = todos[index];
-        final isRemoving = removing.contains(todo.id);
         return ListTile(
           leading: const Icon(Icons.check_box_outline_blank),
           title: Text(todo.text),
           subtitle: Text(todo.id.toString()),
           trailing: IconButton(
             tooltip: 'Delete todo',
-            onPressed: isRemoving ? null : () => onRemove(todo.id),
-            icon: isRemoving
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.delete_outline),
+            onPressed: () => onRemove(todo.id),
+            icon: const Icon(Icons.delete_outline),
           ),
         );
       },
