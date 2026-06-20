@@ -1,12 +1,37 @@
 { pkgs, lib, ... }:
 
 {
+  packages = [
+    pkgs.docker-client
+    pkgs.docker-compose
+  ];
+
   android = {
     enable = true;
     flutter.enable = true;
   };
 
   languages.dart.enable = true;
+
+  scripts.convex-up.exec = ''
+    exec docker-compose --project-name todeus-convex --project-directory "$DEVENV_ROOT/self-hosted/convex" -f "$DEVENV_ROOT/self-hosted/convex/docker-compose.yml" up -d "$@"
+  '';
+
+  scripts.convex-down.exec = ''
+    exec docker-compose --project-name todeus-convex --project-directory "$DEVENV_ROOT/self-hosted/convex" -f "$DEVENV_ROOT/self-hosted/convex/docker-compose.yml" down "$@"
+  '';
+
+  scripts.convex-logs.exec = ''
+    exec docker-compose --project-name todeus-convex --project-directory "$DEVENV_ROOT/self-hosted/convex" -f "$DEVENV_ROOT/self-hosted/convex/docker-compose.yml" logs -f "$@"
+  '';
+
+  scripts.convex-status.exec = ''
+    exec docker-compose --project-name todeus-convex --project-directory "$DEVENV_ROOT/self-hosted/convex" -f "$DEVENV_ROOT/self-hosted/convex/docker-compose.yml" ps "$@"
+  '';
+
+  scripts.convex-admin-key.exec = ''
+    exec docker-compose --project-name todeus-convex --project-directory "$DEVENV_ROOT/self-hosted/convex" -f "$DEVENV_ROOT/self-hosted/convex/docker-compose.yml" exec backend ./generate_admin_key.sh
+  '';
 
   scripts.start-emulator.exec = ''
     export ANDROID_AVD_HOME="$PWD/.android/avd"
