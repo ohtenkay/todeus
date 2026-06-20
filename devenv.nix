@@ -1,46 +1,15 @@
-{ pkgs, lib, config, inputs, ... }:
+{ pkgs, lib, ... }:
 
 {
-  # https://devenv.sh/basics/
-  env.GREET = "devenv";
+  android = {
+    enable = true;
+    flutter.enable = true;
+  };
 
-  # https://devenv.sh/packages/
-  packages = [ pkgs.git ];
-
-  # https://devenv.sh/languages/
-  # languages.rust.enable = true;
-
-  # https://devenv.sh/processes/
-  # processes.dev.exec = "${lib.getExe pkgs.watchexec} -n -- ls -la";
-
-  # https://devenv.sh/services/
-  # services.postgres.enable = true;
-
-  # https://devenv.sh/scripts/
-  scripts.hello.exec = ''
-    echo hello from $GREET
+  # Work around https://github.com/cachix/devenv/issues/2782: devenv's Android
+  # shell puts build-tools lib64 on LD_LIBRARY_PATH, which makes the emulator
+  # load the wrong libc++.so and fail with a libabseil_dll.so symbol error.
+  enterShell = lib.mkAfter ''
+    export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [ pkgs.vulkan-loader pkgs.libGL ]}"
   '';
-
-  # https://devenv.sh/basics/
-  enterShell = ''
-    hello         # Run scripts directly
-    git --version # Use packages
-  '';
-
-  # https://devenv.sh/tasks/
-  # tasks = {
-  #   "myproj:setup".exec = "mytool build";
-  #   "devenv:enterShell".after = [ "myproj:setup" ];
-  # };
-
-  # https://devenv.sh/tests/
-  enterTest = ''
-    echo "Running tests"
-    git --version | grep --color=auto "${pkgs.git.version}"
-  '';
-
-  # https://devenv.sh/git-hooks/
-  # git-hooks.hooks.shellcheck.enable = true;
-
-  # See full reference at https://devenv.sh/reference/options/
 }
